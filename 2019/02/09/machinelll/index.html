@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.0.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.0.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="之前的模型建立方法是利用最小化损失函数来优化模型参数,这次我们将会采用第二种方法————最大似然方法,来求出适当的模型参数.我们将引入一个随机变量对数据集中预测值与真实值之间的误差建模.">
+<meta name="keywords" content="machine learning">
+<meta property="og:type" content="article">
+<meta property="og:title" content="最大似然函数方法">
+<meta property="og:url" content="http://yoursite.com/2019/02/09/machinelll/index.html">
+<meta property="og:site_name" content="SOME NOTES">
+<meta property="og:description" content="之前的模型建立方法是利用最小化损失函数来优化模型参数,这次我们将会采用第二种方法————最大似然方法,来求出适当的模型参数.我们将引入一个随机变量对数据集中预测值与真实值之间的误差建模.">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-02-12T17:24:14.308Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="最大似然函数方法">
+<meta name="twitter:description" content="之前的模型建立方法是利用最小化损失函数来优化模型参数,这次我们将会采用第二种方法————最大似然方法,来求出适当的模型参数.我们将引入一个随机变量对数据集中预测值与真实值之间的误差建模.">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2019/02/09/machinelll/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>最大似然函数方法 | SOME NOTES</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">SOME NOTES</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">A place to keep and to share some notes.</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签<span class="badge">2</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类<span class="badge">2</span></a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档<span class="badge">3</span></a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+    <div class="reading-progress-bar"></div>
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/02/09/machinelll/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Userrnname">
+      <meta itemprop="description" content="some note">
+      <meta itemprop="image" content="/images/GItavatar.jpeg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="SOME NOTES">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">最大似然函数方法
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-02-09 15:07:46" itemprop="dateCreated datePublished" datetime="2019-02-09T15:07:46+08:00">2019-02-09</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-02-13 01:24:14" itemprop="dateModified" datetime="2019-02-13T01:24:14+08:00">2019-02-13</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing"><a href="/categories/ML/" itemprop="url" rel="index"><span itemprop="name">ML</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+            <div class="post-description">之前的模型建立方法是利用最小化损失函数来优化模型参数,这次我们将会采用第二种方法————最大似然方法,来求出适当的模型参数.我们将引入一个随机变量对数据集中预测值与真实值之间的误差建模.</div>
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>机器学习模型建立第二种方法</p>
+<h1 id="最大似然函数方法"><a href="#最大似然函数方法" class="headerlink" title="最大似然函数方法"></a>最大似然函数方法</h1><p>之前的模型建立方法是利用最小化损失函数来优化模型参数,这次我们将会采用第二种方法————最大似然方法,来求出适当的模型参数.我们将引入一个随机变量对数据集中预测值与真实值之间的误差建模.</p>
+<p>模型与真实数据之间总是会存在误差的,我们一般很难去忽略这些误差,所以我们应该去想办法去将这些误差构建在模型中并表示出来.</p>
+<h3 id="模型定义"><a href="#模型定义" class="headerlink" title="模型定义"></a>模型定义</h3><p>还是以我们所熟悉的线性模型为例,现有一组输入与输出,我们假设其之间有线性关系,考虑用一个这样的模型模型</p>
+<script type="math/tex; mode=display">r_n= { \boldsymbol w^T \boldsymbol x_n }+\epsilon_n</script><p>模型由两部分组成:<br>决定性的组成部分${ \boldsymbol w^T \boldsymbol x_n }$,代表了我们模型的整体趋势<br>随机组分部分$\epsilon_n$,其中$\epsilon_n$表示的就是误差值,我们假设其是一个满足高斯分布的连续型随机变量,即$p(\epsilon_n)=N(\mu,\sigma^2)$,我们这里假设均值$\mu=0$.</p>
+<h3 id="似然估计"><a href="#似然估计" class="headerlink" title="似然估计"></a>似然估计</h3><p>现在我们有如下模型</p>
+<script type="math/tex; mode=display">r_n= { \boldsymbol w^T \boldsymbol x_n }+\epsilon_n~~~~\epsilon_n \sim N(0,\sigma^2)</script><p>在这里,$r_n$其自身也是一个随机变量,其值不止一个,所以我们在这里便不能用损失函数优化模型参数.</p>
+<p>由上面的式子,$r_n$的概率密度函数为</p>
+<script type="math/tex; mode=display">p(r_n|\boldsymbol x_n,\boldsymbol w,\sigma^2)=N({ \boldsymbol w^T \boldsymbol x_n },\sigma^2)</script><p>其中等式左边代表$r_n$的概率密度依赖于特定的$\boldsymbol x_n$以及$\boldsymbol w,\sigma^2$</p>
+<p>每个$r_n$都会有一个最可能的值,在高斯分布中其为均值,对于每个单个数据,我们可以通过改变$\boldsymbol w,\sigma^2$,使得这个最可能的值尽可能的接近真实值.</p>
+<p>对于整个数据集,我们更关注其联合条件密度:</p>
+<script type="math/tex; mode=display">p(r_1,{\ldots},r_n|\boldsymbol x_1,{\ldots},\boldsymbol x_n,\boldsymbol w,\sigma^2)</script><p>用向量表示法可以表示为</p>
+<script type="math/tex; mode=display">p(\boldsymbol r|\boldsymbol X,\boldsymbol w,\sigma^2)</script><p>假设所有数据点的误差是独立的,我们便可以将联合条件密度分解为n个独立的部分,每个部分对应于一个数据对象.整个数据集的似然就是每个数据似然的乘积</p>
+<script type="math/tex; mode=display">L=p(\boldsymbol r|\boldsymbol X,\boldsymbol w,\sigma^2)=\coprod_{i=1}^n p(r_n|\boldsymbol x_n,\boldsymbol w,\sigma^2)=\coprod_{i=1}^n N({ \boldsymbol w^T \boldsymbol x_n },\sigma^2)</script><p>这里我们认为$r_n$是条件独立的,对于给定的$\boldsymbol w$值,$r_n$是独立的.然后我们需要去寻找适当的模型参数来最大化似然值</p>
+<p>&lt; !—more—&gt;</p>
+<h3 id="最大似然"><a href="#最大似然" class="headerlink" title="最大似然"></a>最大似然</h3><p>现在我们有了整个数据集的似然值,接下来我们要做的就是寻找最恰当的模型参数来最大化似然值,使得模型对于数据集的预测最接近真实值.</p>
+<p>由</p>
+<script type="math/tex; mode=display">L=p(\boldsymbol r|\boldsymbol X,\boldsymbol w,\sigma^2)=\coprod_{i=1}^n p(r_n|\boldsymbol x_n,\boldsymbol w,\sigma^2)=\coprod_{i=1}^n N({ \boldsymbol w^T \boldsymbol x_n },\sigma^2)</script><p>对上式求对数,有</p>
+<script type="math/tex; mode=display">logL=-\frac{n}{2}log2\pi-nlog\sigma-\frac{1}{2\sigma^2}\boldsymbol{(r-Xw)^T(r-Xw)}</script><p>其中$logL$表示的是$L$的自然对数</p>
+<p>对于上式,我们要最大化似然的对数值,可以分别对$w,\sigma$求偏导并且令导数为零,就可以找到最优的$w,\sigma^2$值</p>
+<script type="math/tex; mode=display">\frac{\partial~ logL}{\partial~\boldsymbol w}=\frac{1}{\sigma^2}\boldsymbol{(X^Tr-X^TXw)}=0</script><script type="math/tex; mode=display">\boldsymbol{\hat w=(X^TX)^{-1}X^Tr}</script><script type="math/tex; mode=display">\frac{\partial~ logL}{\partial~ \sigma}=-\frac{n}{\sigma} +\frac{1}{\sigma^3}\boldsymbol{(r-X\hat w)^T(r-X\hat w)}=0</script><script type="math/tex; mode=display">\hat {\sigma} ^2=\frac{1}{n}\boldsymbol{(r^tr-r^tX\hat w)}</script><p>$ \boldsymbol {\hat w}$决定了均值,$\hat {\sigma} ^2$决定了方差</p>
+<p>假如我们需要对上述结果加以证明以确保我们找到的是最大似然值,那么我们需要对似然求二阶导数并构建海森矩阵,证明其为负定.</p>
+<h3 id="其他问题"><a href="#其他问题" class="headerlink" title="其他问题"></a>其他问题</h3><h4 id="偏倚-方差两难问题"><a href="#偏倚-方差两难问题" class="headerlink" title="偏倚/方差两难问题"></a>偏倚/方差两难问题</h4><p>回到我们的模型,样本$\chi$由输入值$x$与输出值$r$组成,用$g(x)$表示估计,那么估计的期望平方误差可以用下式表示</p>
+<script type="math/tex; mode=display">E[(r-g(x)^2)|x]=(E[r~|~x]-g(x))^2+E[(r-E[r~|~x])^2|x]</script><p>等式右边第一项是误差的平方,代表的是$g(x)$偏离回归函数的程度,依赖于我们的训练集与估计方法,而第二项则是给定$x$时$r$的方差,它不依赖于我们的估计,是我们添加的$\epsilon$的方差.</p>
+<p>而我们的误差的期望值则可以由下式表示</p>
+<p><script type="math/tex">E_\chi[(E[r|x]-g(x))^2|x]=(E[r|x]-E_\chi[g(x)])^2+E_\chi[(g(x)-E_\chi[g(x)])^2]</script>-</p>
+<p>其中等式右边的第一项是偏倚的平方,代表的是我们的对数据的估计值与真实值之间偏差的大小,第二项则是方差,代表的则是当样本发生变化的时候,我们的估计值在期望附近的波动的程度.</p>
+<p>一般来说,一个模型越复杂,拟合数据集的程度越好,那么其偏倚就会越小,而方差则会越大,对于过大的方差我们称之为过拟合,而一个模型假如越简单,拟合数据集的程度就越差,那么其偏倚就会越大,而方差则会越小,对于过大的偏倚我们称之为欠拟合.调整模型复杂度的时候,想要减少其中一方,必然就会带来另一方的增加,这就是偏倚/方差两难问题.</p>
+<h4 id="模型选择"><a href="#模型选择" class="headerlink" title="模型选择"></a>模型选择</h4><p>在实际中,我们需要不断调整并且找到最佳的模型复杂度,常用的方法.</p>
+<!-- 最大似然与最小损失之间的对比 -->
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/machine-learning/" rel="tag"># machine learning</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/02/03/bayes/" rel="next" title="最大似然函数方法">
+                <i class="fa fa-chevron-left"></i> 最大似然函数方法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/02/09/degree/" rel="prev" title="最大似然函数方法">
+                最大似然函数方法 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/GItavatar.jpeg" alt="Userrnname">
+            
+              <p class="site-author-name" itemprop="name">Userrnname</p>
+              <p class="site-description motion-element" itemprop="description">some note</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">2</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">2</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#最大似然函数方法"><span class="nav-number">1.</span> <span class="nav-text">最大似然函数方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#模型定义"><span class="nav-number">1.0.1.</span> <span class="nav-text">模型定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#似然估计"><span class="nav-number">1.0.2.</span> <span class="nav-text">似然估计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#最大似然"><span class="nav-number">1.0.3.</span> <span class="nav-text">最大似然</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其他问题"><span class="nav-number">1.0.4.</span> <span class="nav-text">其他问题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#偏倚-方差两难问题"><span class="nav-number">1.0.4.1.</span> <span class="nav-text">偏倚/方差两难问题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#模型选择"><span class="nav-number">1.0.4.2.</span> <span class="nav-text">模型选择</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Userrnname</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.8.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.0.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/reading_progress/reading_progress.js"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.0"></script>
+
+  <script src="/js/src/motion.js?v=7.0.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.0"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.0"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.0"></script>
+<script src="/js/src/post-details.js?v=7.0.0"></script>
+
+
+
+  
+
+
+  <script src="/js/src/bootstrap.js?v=7.0.0"></script>
+
+
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+    
+      <script type="text/x-mathjax-config">
+  
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      
+      equationNumbers: {
+        autoNumber: "AMS"
+      }
+    }
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+      for (i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+  });
+</script>
+<script src="//cdn.jsdelivr.net/npm/mathjax@2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<style>
+.MathJax_Display {
+  overflow: auto hidden;
+}
+</style>
+
+    
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+  
+  <script src="/lib/bookmark/bookmark.min.js?v=1.0"></script>
+  <script>
+  
+    bookmark.scrollToMark('auto', "#更多");
+  
+  </script>
+
+
+  
+
+</body>
+</html>
